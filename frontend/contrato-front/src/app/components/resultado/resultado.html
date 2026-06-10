@@ -1,0 +1,82 @@
+<div class="resultado">
+
+  <!-- Valoración global -->
+  <div class="global-card" [attr.data-estado]="analysis().valoracion_global">
+    <span class="global-badge">{{ globalLabel(analysis().valoracion_global) }}</span>
+    <p class="resumen">{{ analysis().resumen }}</p>
+  </div>
+
+  <!-- Datos clave -->
+  <div class="datos-clave">
+    <h3>Datos del contrato</h3>
+    <div class="datos-grid">
+      <div class="dato">
+        <span class="dato-label">Tipo</span>
+        <span class="dato-valor">{{ analysis().datos_clave.tipo_contrato }}</span>
+      </div>
+      <div class="dato">
+        <span class="dato-label">Duración</span>
+        <span class="dato-valor">{{ analysis().datos_clave.duracion }}</span>
+      </div>
+      <div class="dato">
+        <span class="dato-label">Renta mensual</span>
+        <span class="dato-valor">{{ analysis().datos_clave.renta_mensual }}</span>
+      </div>
+      <div class="dato">
+        <span class="dato-label">Fianza</span>
+        <span class="dato-valor">{{ analysis().datos_clave.fianza }}</span>
+      </div>
+      <div class="dato">
+        <span class="dato-label">Inicio</span>
+        <span class="dato-valor">{{ analysis().datos_clave.fecha_inicio }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cláusulas -->
+  <div class="clausulas-section">
+    <h3>Análisis por cláusulas <span class="count">({{ analysis().clausulas.length }})</span></h3>
+
+    @for (clausula of analysis().clausulas; track $index) {
+      <div class="clausula-card" [attr.data-estado]="clausula.estado">
+        <button class="clausula-header" (click)="toggle($index)">
+          <span class="estado-badge">{{ estadoLabel(clausula.estado) }}</span>
+          <span class="clausula-titulo">{{ clausula.titulo }}</span>
+          <span class="chevron" [class.open]="expandedIndex() === $index">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </span>
+        </button>
+
+        @if (expandedIndex() === $index) {
+          <div class="clausula-body">
+            @if (clausula.texto_original) {
+              <blockquote>{{ clausula.texto_original }}</blockquote>
+            }
+            <p class="explicacion">{{ clausula.explicacion }}</p>
+            @if (clausula.referencia_legal) {
+              <p class="referencia-legal">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                {{ clausula.referencia_legal }}
+              </p>
+            }
+            @if (clausula.recomendacion) {
+              <p class="recomendacion">{{ clausula.recomendacion }}</p>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Resumen de riesgos -->
+  <div class="riesgos-card">
+    <h3>Resumen de riesgos</h3>
+    <p>{{ analysis().resumen_riesgos }}</p>
+  </div>
+
+</div>

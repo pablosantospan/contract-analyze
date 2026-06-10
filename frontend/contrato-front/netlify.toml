@@ -1,0 +1,6 @@
+[build]
+  command = "npx @angular/cli build --configuration=production"
+  publish = "dist/contrato-front/browser"
+
+[build.environment]
+  NODE_VERSION = "24"

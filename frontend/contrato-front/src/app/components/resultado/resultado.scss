@@ -1,0 +1,236 @@
+.resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// ── Valoración global ──────────────────────────────────────────
+.global-card {
+  padding: 20px 24px;
+  border-radius: var(--radius);
+  border-left: 4px solid;
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+
+  &[data-estado='ok'] {
+    border-color: var(--color-ok-border);
+    background: var(--color-ok-bg);
+  }
+  &[data-estado='revisar'] {
+    border-color: var(--color-atencion-border);
+    background: var(--color-atencion-bg);
+  }
+  &[data-estado='peligroso'] {
+    border-color: var(--color-abusiva-border);
+    background: var(--color-abusiva-bg);
+  }
+}
+
+.global-badge {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+
+  .global-card[data-estado='ok'] & { color: var(--color-ok-text); }
+  .global-card[data-estado='revisar'] & { color: var(--color-atencion-text); }
+  .global-card[data-estado='peligroso'] & { color: var(--color-abusiva-text); }
+}
+
+.resumen {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+// ── Datos clave ───────────────────────────────────────────────
+.datos-clave {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+
+  h3 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+    color: var(--color-text);
+  }
+}
+
+.datos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dato-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.dato-valor {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+// ── Cláusulas ─────────────────────────────────────────────────
+.clausulas-section {
+  h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: var(--color-text);
+  }
+}
+
+.count {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+}
+
+.clausula-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  border-left: 3px solid;
+
+  &[data-estado='ok'] { border-color: var(--color-ok-border); }
+  &[data-estado='atencion'] { border-color: var(--color-atencion-border); }
+  &[data-estado='abusiva'] { border-color: var(--color-abusiva-border); }
+
+  & + & {
+    margin-top: 8px;
+  }
+}
+
+.clausula-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-size: 0.9rem;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.02);
+  }
+}
+
+.estado-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  .clausula-card[data-estado='ok'] & {
+    background: var(--color-ok-bg);
+    color: var(--color-ok-text);
+  }
+  .clausula-card[data-estado='atencion'] & {
+    background: var(--color-atencion-bg);
+    color: var(--color-atencion-text);
+  }
+  .clausula-card[data-estado='abusiva'] & {
+    background: var(--color-abusiva-bg);
+    color: var(--color-abusiva-text);
+  }
+}
+
+.clausula-titulo {
+  flex: 1;
+  font-weight: 500;
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 0.2s;
+
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+.clausula-body {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--color-border);
+  margin: 0 0 0 0;
+  padding-top: 12px;
+}
+
+blockquote {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  border-left: 3px solid var(--color-border);
+  padding-left: 12px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.explicacion {
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.referencia-legal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.recomendacion {
+  font-size: 0.85rem;
+  background: var(--color-atencion-bg);
+  color: var(--color-atencion-text);
+  border-radius: 6px;
+  padding: 8px 12px;
+  line-height: 1.5;
+
+  .clausula-card[data-estado='abusiva'] & {
+    background: var(--color-abusiva-bg);
+    color: var(--color-abusiva-text);
+  }
+}
+
+// ── Resumen riesgos ───────────────────────────────────────────
+.riesgos-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+
+  h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+
+  p {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+  }
+}

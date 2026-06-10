@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(\\(Get-Command npx\\).Source; npx @angular/cli version 2>&1 | Select-Object -First 5)",
+      "PowerShell(Copy-Item \"c:\\\\Users\\\\heavy\\\\OneDrive\\\\Escritorio\\\\Proyectos\\\\contract-analyzer\\\\backend\\\\.env.example\" \"c:\\\\Users\\\\heavy\\\\OneDrive\\\\Escritorio\\\\Proyectos\\\\contract-analyzer\\\\backend\\\\.env\")",
+      "PowerShell($gitPath = @\\(\"C:\\\\Program Files\\\\Git\\\\bin\\\\git.exe\", \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\"\\) | Where-Object { Test-Path $_ } | Select-Object -First 1; $gitPath)"
+    ]
+  }
+}
