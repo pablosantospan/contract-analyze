@@ -16,9 +16,9 @@ App para analizar contratos de alquiler con IA. El usuario sube un PDF y recibe 
 
 - **Frontend:** Angular 18 (standalone components, signals)
 - **Backend:** Node.js + Express + TypeScript
-- **IA:** Claude claude-sonnet-4-20250514 via Anthropic API
+- **IA:** Claude claude-sonnet-4-6 via Anthropic API
 - **PDF parsing:** pdf-parse (solo PDFs con texto, no escaneados)
-- **Deploy previsto:** Backend en Railway o Render (gratis MVP), Frontend en Netlify o Vercel
+- **Deploy:** Backend en Railway, Frontend en Netlify (ambos en producción)
 
 ## Estructura del proyecto
 
@@ -109,14 +109,22 @@ interface Clausula {
 
 - TypeScript estricto (`strict: true`)
 - No usar `any` — tipar respuestas de Anthropic y pdf-parse explícitamente
-- Modelo fijo: `claude-sonnet-4-20250514`, `max_tokens: 4096`
+- Modelo fijo: `claude-sonnet-4-6`, `max_tokens: 8192`
+- Respuesta vía streaming SSE (Server-Sent Events) para evitar timeouts en contratos largos
+- El texto del contrato se trunca a 25.000 caracteres antes de enviarlo a la IA
 
 ## Variables de entorno
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...   # obligatoria
-PORT=3000                       # opcional, default 3000
+ANTHROPIC_API_KEY=sk-ant-...            # obligatoria
+PORT=3000                               # opcional, default 3000
+FRONTEND_URL=http://localhost:4200      # origen permitido por CORS
 ```
+
+## Despliegue
+
+- **Backend (Railway):** Root Directory = `backend`. Variables: `ANTHROPIC_API_KEY`, `FRONTEND_URL` (URL de Netlify)
+- **Frontend (Netlify):** Base directory = `frontend/contrato-front`, build con `netlify.toml`. La URL del backend se configura en `src/environments/environment.prod.ts` (`apiUrl`)
 
 ## Diseño visual
 
@@ -136,7 +144,6 @@ PORT=3000                       # opcional, default 3000
 - [ ] Modo B2B: prompt adaptado para gestorías y administradores de fincas
 - [ ] Generación de contratos desde cero (no solo análisis)
 - [ ] Análisis de declaración de la renta para propietarios (posible pivot/extensión)
-- [ ] Deploy producción: Railway (back) + Netlify (front)
 
 ## Contexto de negocio (para decisiones de producto)
 
