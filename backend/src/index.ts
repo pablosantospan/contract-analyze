@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import multer from 'multer';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import crypto from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import Stripe from 'stripe';
@@ -62,7 +63,20 @@ function toPreview(analysis: AnalisisContrato): AnalisisPreview {
 
 const app = express();
 
+// Railway sirve la app detrás de un proxy: necesario para que express-rate-limit
+// identifique a cada cliente por su IP real (X-Forwarded-For) y no por la del proxy.
+app.set('trust proxy', 1);
+
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:4200' }));
+
+// Cada análisis ejecuta una llamada a Claude (coste), aunque el usuario no pague después.
+const subirLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Has alcanzado el límite de análisis. Inténtalo de nuevo en unos minutos.' },
+});
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -138,7 +152,7 @@ FORMATO DE RESPUESTA (JSON estricto, sin markdown):
   "resumen_riesgos": "resumen de los principales riesgos o puntos de atención"
 }`;
 
-app.post('/api/subir', upload.single('contrato'), async (req: Request, res: Response): Promise<void> => {
+app.post('/api/subir', subirLimiter, upload.single('contrato'), async (req: Request, res: Response): Promise<void> => {
   if (!req.file) {
     res.status(400).json({ error: 'No se ha enviado ningún archivo PDF' });
     return;

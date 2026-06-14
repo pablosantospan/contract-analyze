@@ -85,7 +85,7 @@ El system prompt especializado en LAU pide JSON estructurado a Claude; si la res
 
 **Limitación conocida del MVP:** los análisis ya generados pero pendientes de pago se guardan en memoria y se pierden si el servidor se reinicia (p. ej. redeploy en Railway) entre la vista previa y el pago. Riesgo bajo (Railway solo redespliega con `git push`) pero no nulo — el usuario vería un error pidiendo volver a subir el PDF aunque Stripe ya haya cobrado.
 
-**Riesgo de coste:** cada PDF subido genera una llamada a Claude (coste ~centavos), pague o no el usuario después de ver la vista previa. Aceptable para la fase de validación (20-30 usuarios); ver backlog si se vuelve un problema.
+**Riesgo de coste:** cada PDF subido genera una llamada a Claude (coste ~centavos), pague o no el usuario después de ver la vista previa. `/api/subir` está limitado a 5 peticiones cada 15 minutos por IP (`express-rate-limit`) para acotar el abuso.
 
 ## Modelo de datos (contrato.model.ts)
 
@@ -183,7 +183,6 @@ FRONTEND_URL=http://localhost:4200      # origen permitido por CORS y redireccio
 - [ ] Modo B2B: prompt adaptado para gestorías y administradores de fincas
 - [ ] Generación de contratos desde cero (no solo análisis)
 - [ ] Análisis de declaración de la renta para propietarios (posible pivot/extensión)
-- [ ] Limitar abuso de `/api/subir` (rate limiting / captcha) — cada PDF subido genera una llamada a Claude aunque el usuario no pague después
 
 ## Contexto de negocio (para decisiones de producto)
 
