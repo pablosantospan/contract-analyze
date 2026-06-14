@@ -26,7 +26,7 @@
       <app-uploader (fileSelected)="onFileSelected($event)" />
     }
 
-    @if (state() === 'loading') {
+    @if (state() === 'analizando') {
       <div class="loading-state">
         <div class="spinner"></div>
         <p>Analizando tu contrato…</p>
@@ -34,15 +34,46 @@
       </div>
     }
 
+    @if (state() === 'vista_previa' && preview()) {
+      <app-vista-previa [preview]="preview()!" (pagar)="pagar()" />
+    }
+
+    @if (state() === 'redirigiendo') {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Conectando con Stripe…</p>
+      </div>
+    }
+
+    @if (state() === 'cargando_resultado') {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando tu informe…</p>
+      </div>
+    }
+
     @if (state() === 'done' && analysis()) {
       <app-resultado [analysis]="analysis()!" />
     }
 
+    @if (state() === 'cancelado') {
+      <div class="error-state">
+        <p class="error-title">Pago cancelado</p>
+        <p class="error-msg">No se ha realizado ningún cargo. Puedes intentarlo de nuevo cuando quieras.</p>
+        <button class="btn-primary" (click)="pagar()">Reintentar pago</button>
+      </div>
+    }
+
     @if (state() === 'error') {
       <div class="error-state">
-        <p class="error-title">No se pudo analizar el contrato</p>
+        <p class="error-title">No se pudo completar la operación</p>
         <p class="error-msg">{{ errorMsg() }}</p>
-        <button class="btn-primary" (click)="reset()">Intentar de nuevo</button>
+        @if (sessionId()) {
+          <p class="error-msg">Tu pago se ha procesado correctamente. Puedes reintentar sin coste adicional.</p>
+          <button class="btn-primary" (click)="reintentarResultado()">Reintentar</button>
+        } @else {
+          <button class="btn-primary" (click)="reset()">Intentar de nuevo</button>
+        }
       </div>
     }
   </main>

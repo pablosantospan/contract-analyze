@@ -26,7 +26,19 @@ export interface AnalisisContrato {
   resumen_riesgos: string;
 }
 
-export interface ApiResponse {
-  success: true;
-  analysis: AnalisisContrato;
+export interface ClausulaPreview {
+  titulo: string;
+  estado: EstadoClausula;
+}
+
+export interface AnalisisPreview {
+  resumen: string;
+  datos_clave: DatosClave;
+  valoracion_global: ValoracionGlobal;
+  resumen_riesgos: string;
+  clausulas: ClausulaPreview[];
+}
+
+export interface CrearPagoResponse {
+  url: string;
 }

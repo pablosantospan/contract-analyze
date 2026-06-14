@@ -1,0 +1,76 @@
+<div class="vista-previa">
+
+  <!-- Valoración global -->
+  <div class="global-card" [attr.data-estado]="preview().valoracion_global">
+    <span class="global-badge">{{ globalLabel(preview().valoracion_global) }}</span>
+    <p class="resumen">{{ preview().resumen }}</p>
+  </div>
+
+  <!-- Datos clave -->
+  <div class="datos-clave">
+    <h3>Datos del contrato</h3>
+    <div class="datos-grid">
+      <div class="dato">
+        <span class="dato-label">Tipo</span>
+        <span class="dato-valor">{{ preview().datos_clave.tipo_contrato }}</span>
+      </div>
+      <div class="dato">
+        <span class="dato-label">Duración</span>
+        <span class="dato-valor">{{ preview().datos_clave.duracion }}</span>
+      </div>
+      <div class="dato">
+        <span class="dato-label">Renta mensual</span>
+        <span class="dato-valor">{{ preview().datos_clave.renta_mensual }}</span>
+      </div>
+      <div class="dato">
+        <span class="dato-label">Fianza</span>
+        <span class="dato-valor">{{ preview().datos_clave.fianza }}</span>
+      </div>
+      <div class="dato">
+        <span class="dato-label">Inicio</span>
+        <span class="dato-valor">{{ preview().datos_clave.fecha_inicio }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cláusulas (vista bloqueada) -->
+  <div class="clausulas-section">
+    <h3>Análisis por cláusulas <span class="count">({{ preview().clausulas.length }})</span></h3>
+
+    @for (clausula of preview().clausulas; track $index) {
+      <div class="clausula-card" [attr.data-estado]="clausula.estado">
+        <span class="estado-badge">{{ estadoLabel(clausula.estado) }}</span>
+        <span class="clausula-titulo">{{ clausula.titulo }}</span>
+        <span class="lock" title="Disponible al desbloquear el informe completo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </span>
+      </div>
+    }
+  </div>
+
+  <!-- Resumen de riesgos -->
+  <div class="riesgos-card">
+    <h3>Resumen de riesgos</h3>
+    <p>{{ preview().resumen_riesgos }}</p>
+  </div>
+
+  <!-- CTA de pago -->
+  <div class="pago-card">
+    <div class="pago-icon">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <path d="M9 13l2 2 4-4"/>
+      </svg>
+    </div>
+    <h2>Hemos terminado el análisis</h2>
+    <p class="subtitle">Desbloquea la explicación detallada, la referencia legal y la recomendación de cada cláusula por</p>
+    <p class="precio">4,99&nbsp;€</p>
+    <button class="btn-pagar" (click)="pagar.emit()">Desbloquear informe completo</button>
+    <p class="hint">Pago seguro a través de Stripe · Sin suscripciones</p>
+  </div>
+
+</div>

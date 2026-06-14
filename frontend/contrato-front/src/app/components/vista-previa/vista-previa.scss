@@ -1,0 +1,224 @@
+.vista-previa {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// ── Valoración global ──────────────────────────────────────────
+.global-card {
+  padding: 20px 24px;
+  border-radius: var(--radius);
+  border-left: 4px solid;
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+
+  &[data-estado='ok'] {
+    border-color: var(--color-ok-border);
+    background: var(--color-ok-bg);
+  }
+  &[data-estado='revisar'] {
+    border-color: var(--color-atencion-border);
+    background: var(--color-atencion-bg);
+  }
+  &[data-estado='peligroso'] {
+    border-color: var(--color-abusiva-border);
+    background: var(--color-abusiva-bg);
+  }
+}
+
+.global-badge {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+
+  .global-card[data-estado='ok'] & { color: var(--color-ok-text); }
+  .global-card[data-estado='revisar'] & { color: var(--color-atencion-text); }
+  .global-card[data-estado='peligroso'] & { color: var(--color-abusiva-text); }
+}
+
+.resumen {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+// ── Datos clave ───────────────────────────────────────────────
+.datos-clave {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+
+  h3 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+    color: var(--color-text);
+  }
+}
+
+.datos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dato-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.dato-valor {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+// ── Cláusulas (bloqueadas) ──────────────────────────────────────
+.clausulas-section {
+  h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: var(--color-text);
+  }
+}
+
+.count {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+}
+
+.clausula-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border-left: 3px solid;
+  font-size: 0.9rem;
+
+  &[data-estado='ok'] { border-color: var(--color-ok-border); }
+  &[data-estado='atencion'] { border-color: var(--color-atencion-border); }
+  &[data-estado='abusiva'] { border-color: var(--color-abusiva-border); }
+
+  & + & {
+    margin-top: 8px;
+  }
+}
+
+.estado-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  .clausula-card[data-estado='ok'] & {
+    background: var(--color-ok-bg);
+    color: var(--color-ok-text);
+  }
+  .clausula-card[data-estado='atencion'] & {
+    background: var(--color-atencion-bg);
+    color: var(--color-atencion-text);
+  }
+  .clausula-card[data-estado='abusiva'] & {
+    background: var(--color-abusiva-bg);
+    color: var(--color-abusiva-text);
+  }
+}
+
+.clausula-titulo {
+  flex: 1;
+  font-weight: 500;
+}
+
+.lock {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+// ── Resumen riesgos ───────────────────────────────────────────
+.riesgos-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+
+  h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+
+  p {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+  }
+}
+
+// ── CTA de pago ─────────────────────────────────────────────────
+.pago-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 48px 24px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.pago-icon {
+  color: var(--color-accent);
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.precio {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin: 4px 0 12px;
+}
+
+.btn-pagar {
+  padding: 12px 32px;
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--color-accent-hover);
+  }
+}
+
+.hint {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}

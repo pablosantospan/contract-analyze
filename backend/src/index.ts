@@ -2,7 +2,9 @@ import express, { Request, Response } from 'express';
 import multer from 'multer';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import crypto from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
+import Stripe from 'stripe';
 import pdfParse from 'pdf-parse';
 
 dotenv.config();
@@ -19,18 +21,43 @@ interface Clausula {
   recomendacion: string | null;
 }
 
+interface DatosClave {
+  duracion: string;
+  renta_mensual: string;
+  fianza: string;
+  fecha_inicio: string;
+  tipo_contrato: string;
+}
+
 interface AnalisisContrato {
   resumen: string;
-  datos_clave: {
-    duracion: string;
-    renta_mensual: string;
-    fianza: string;
-    fecha_inicio: string;
-    tipo_contrato: string;
-  };
+  datos_clave: DatosClave;
   clausulas: Clausula[];
   valoracion_global: ValoracionGlobal;
   resumen_riesgos: string;
+}
+
+interface ClausulaPreview {
+  titulo: string;
+  estado: EstadoClausula;
+}
+
+interface AnalisisPreview {
+  resumen: string;
+  datos_clave: DatosClave;
+  valoracion_global: ValoracionGlobal;
+  resumen_riesgos: string;
+  clausulas: ClausulaPreview[];
+}
+
+function toPreview(analysis: AnalisisContrato): AnalisisPreview {
+  return {
+    resumen: analysis.resumen,
+    datos_clave: analysis.datos_clave,
+    valoracion_global: analysis.valoracion_global,
+    resumen_riesgos: analysis.resumen_riesgos,
+    clausulas: analysis.clausulas.map(({ titulo, estado }) => ({ titulo, estado })),
+  };
 }
 
 const app = express();
@@ -50,8 +77,26 @@ const upload = multer({
 });
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '');
 
 const MAX_INPUT_CHARS = 25000;
+const PRECIO_ANALISIS_CENTIMOS = 499; // 4,99 €
+const ANALYSIS_TTL_MS = 30 * 60 * 1000; // 30 minutos
+
+interface AnalysisEntry {
+  analysis: AnalisisContrato;
+  expiresAt: number;
+}
+
+// Análisis ya generados, pendientes de pago, en memoria (sin BD): se pierden si el servidor se reinicia.
+const analyses = new Map<string, AnalysisEntry>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, entry] of analyses.entries()) {
+    if (entry.expiresAt < now) analyses.delete(id);
+  }
+}, 5 * 60 * 1000).unref();
 
 const SYSTEM_PROMPT = `Eres un abogado especializado en Derecho Inmobiliario español, experto en la Ley de Arrendamientos Urbanos (LAU, Ley 29/1994 y sus modificaciones, incluyendo la Ley de Vivienda 2023).
 
@@ -93,7 +138,7 @@ FORMATO DE RESPUESTA (JSON estricto, sin markdown):
   "resumen_riesgos": "resumen de los principales riesgos o puntos de atención"
 }`;
 
-app.post('/api/analizar', upload.single('contrato'), async (req: Request, res: Response): Promise<void> => {
+app.post('/api/subir', upload.single('contrato'), async (req: Request, res: Response): Promise<void> => {
   if (!req.file) {
     res.status(400).json({ error: 'No se ha enviado ningún archivo PDF' });
     return;
@@ -117,7 +162,7 @@ app.post('/api/analizar', upload.single('contrato'), async (req: Request, res: R
     textoContrato = textoContrato.slice(0, MAX_INPUT_CHARS);
   }
 
-  // SSE headers — keep connection alive during the full stream
+  // SSE headers — keep connection alive durante el análisis (30-90s)
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -154,13 +199,88 @@ app.post('/api/analizar', upload.single('contrato'), async (req: Request, res: R
     }
 
     const analysis = JSON.parse(jsonText) as AnalisisContrato;
-    send({ type: 'done', analysis });
+
+    const analysisId = crypto.randomUUID();
+    analyses.set(analysisId, { analysis, expiresAt: Date.now() + ANALYSIS_TTL_MS });
+
+    send({ type: 'done', analysisId, preview: toPreview(analysis) });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Error desconocido';
     send({ type: 'error', error: `Error al analizar el contrato: ${msg}` });
   }
 
   res.end();
+});
+
+app.post('/api/crear-pago', express.json(), async (req: Request, res: Response): Promise<void> => {
+  const { analysisId } = req.body as { analysisId?: string };
+
+  if (!analysisId || !analyses.has(analysisId)) {
+    res.status(404).json({ error: 'No se encontró el análisis. Vuelve a subir el PDF.' });
+    return;
+  }
+
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            unit_amount: PRECIO_ANALISIS_CENTIMOS,
+            product_data: {
+              name: 'Informe completo de contrato de alquiler — ContratoClaro',
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: { analysisId },
+      success_url: `${frontendUrl}/?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/?canceled=true&analysisId=${analysisId}`,
+    });
+
+    if (!session.url) throw new Error('Stripe no devolvió una URL de checkout');
+
+    res.json({ url: session.url });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Error desconocido';
+    res.status(500).json({ error: `Error al crear la sesión de pago: ${msg}` });
+  }
+});
+
+app.get('/api/resultado', async (req: Request, res: Response): Promise<void> => {
+  const sessionId = req.query.session_id;
+
+  if (typeof sessionId !== 'string') {
+    res.status(400).json({ error: 'Falta el parámetro session_id' });
+    return;
+  }
+
+  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.retrieve>>;
+  try {
+    session = await stripe.checkout.sessions.retrieve(sessionId);
+  } catch {
+    res.status(404).json({ error: 'No se encontró la sesión de pago' });
+    return;
+  }
+
+  if (session.payment_status !== 'paid') {
+    res.status(402).json({ error: 'El pago no se ha completado todavía' });
+    return;
+  }
+
+  const analysisId = session.metadata?.['analysisId'];
+  const entry = analysisId ? analyses.get(analysisId) : undefined;
+
+  if (!entry) {
+    res.status(410).json({ error: 'El análisis ha caducado. Vuelve a subir el contrato.' });
+    return;
+  }
+
+  res.json({ analysis: entry.analysis });
 });
 
 const PORT = Number(process.env.PORT) || 3000;

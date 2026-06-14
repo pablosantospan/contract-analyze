@@ -8,7 +8,7 @@ App para analizar contratos de alquiler con IA. El usuario sube un PDF y recibe 
 
 **Usuario objetivo (MVP):** Propietarios e inquilinos particulares en España (B2C). Futuro: gestorías, administradores de fincas (B2B).
 
-**Modelo de negocio:** Pago por uso — 4,99€ por análisis, o freemium (resumen gratis, informe detallado de pago). Stripe pendiente de integrar.
+**Modelo de negocio:** Pago por uso — 4,99€ por análisis, vía Stripe Checkout. El análisis se genera primero y se muestra una vista previa gratuita (valoración global, datos clave, resumen de riesgos y título/estado de cada cláusula); el pago desbloquea el informe completo (explicación, referencia legal y recomendación de cada cláusula).
 
 **Diferenciación:** Específico para legislación española (LAU), sin almacenar el contrato, resultado inmediato.
 
@@ -18,6 +18,7 @@ App para analizar contratos de alquiler con IA. El usuario sube un PDF y recibe 
 - **Backend:** Node.js + Express + TypeScript
 - **IA:** Claude claude-sonnet-4-6 via Anthropic API
 - **PDF parsing:** pdf-parse (solo PDFs con texto, no escaneados)
+- **Pagos:** Stripe Checkout (modo pago único, sin suscripciones)
 - **Deploy:** Backend en Railway, Frontend en Netlify (ambos en producción)
 
 ## Estructura del proyecto
@@ -34,10 +35,11 @@ contrato-analyzer/
 └── frontend/contrato-front/
     └── src/app/
         ├── models/contrato.model.ts       # Tipos TypeScript del análisis
-        ├── services/contrato.service.ts   # ContratoService — POST /api/analizar
+        ├── services/contrato.service.ts   # ContratoService — subir, crearSesionPago, obtenerResultado
         └── components/
             ├── uploader/                  # Drag & drop + subida de PDF + estado de carga
-            └── resultado/                 # Visualización del análisis por cláusulas
+            ├── vista-previa/              # Vista previa gratuita + CTA "Desbloquear informe completo" (4,99€)
+            └── resultado/                 # Visualización del informe completo por cláusulas
 ```
 
 ## Comandos
@@ -57,14 +59,33 @@ ng build                      # build de producción
 ng build --configuration=development  # build rápido sin optimizar
 ```
 
-## API: endpoint principal
+## API: endpoints
 
-`POST /api/analizar`
-- Body: `multipart/form-data` con campo `contrato` (PDF, máx 10 MB)
-- Respuesta OK: `{ success: true, analysis: AnalisisContrato }`
-- Respuesta error: `{ error: string }`
+Flujo "analizar primero, pagar para desbloquear" (sin BD ni autenticación):
 
-El backend extrae el texto del PDF con `pdf-parse`, lo pasa a Claude con un system prompt especializado en LAU, y devuelve JSON estructurado. Si la respuesta viene con fences de markdown, se limpian antes de parsear.
+1. **`POST /api/subir`**
+   - Body: `multipart/form-data` con campo `contrato` (PDF, máx 10 MB)
+   - Extrae el texto con `pdf-parse`, lo valida y trunca a 25.000 caracteres, y ejecuta el análisis completo con Claude
+   - Guarda el análisis completo en memoria bajo un `analysisId` (TTL 30 min)
+   - Respuesta vía SSE: eventos `{type:'chunk'}`, `{type:'done', analysisId, preview}` (preview = `AnalisisPreview`), `{type:'error', error}`
+
+2. **`POST /api/crear-pago`**
+   - Body JSON: `{ analysisId: string }`
+   - Crea una Stripe Checkout Session de 4,99€ y devuelve `{ url: string }` para redirigir al usuario
+   - Si `analysisId` no existe/ha caducado → 404
+
+3. **`GET /api/resultado?session_id=...`**
+   - Verifica con Stripe que `payment_status === 'paid'`, recupera el `analysisId` de `session.metadata` y devuelve el análisis completo ya generado
+   - Respuesta JSON: `{ analysis: AnalisisContrato }` (lectura instantánea de memoria, sin volver a llamar a Claude)
+   - Si el pago no está completado → 402; si el análisis ha caducado → 410
+
+El system prompt especializado en LAU pide JSON estructurado a Claude; si la respuesta viene con fences de markdown, se limpian antes de parsear.
+
+**Pago después del análisis:** como el análisis se ejecuta en `/api/subir` antes de cualquier cobro, un fallo de Claude o de parseo del JSON no afecta a ningún pago — el usuario simplemente puede volver a subir el PDF sin coste. Tras un pago exitoso, `GET /api/resultado` es una operación instantánea (sin IA), pero por si falla de forma transitoria el frontend guarda el `session_id` en una señal (`app.ts`) y, ante un error en estado `cargando_resultado`, muestra un botón "Reintentar" que repite la consulta con la misma sesión, sin cobrar de nuevo.
+
+**Limitación conocida del MVP:** los análisis ya generados pero pendientes de pago se guardan en memoria y se pierden si el servidor se reinicia (p. ej. redeploy en Railway) entre la vista previa y el pago. Riesgo bajo (Railway solo redespliega con `git push`) pero no nulo — el usuario vería un error pidiendo volver a subir el PDF aunque Stripe ya haya cobrado.
+
+**Riesgo de coste:** cada PDF subido genera una llamada a Claude (coste ~centavos), pague o no el usuario después de ver la vista previa. Aceptable para la fase de validación (20-30 usuarios); ver backlog si se vuelve un problema.
 
 ## Modelo de datos (contrato.model.ts)
 
@@ -94,6 +115,22 @@ interface Clausula {
   referencia_legal: string | null
   recomendacion: string | null
 }
+
+// Vista previa gratuita (antes de pagar): mismo análisis sin los campos
+// de detalle de cada cláusula (texto_original, explicacion,
+// referencia_legal, recomendacion)
+interface ClausulaPreview {
+  titulo: string
+  estado: EstadoClausula
+}
+
+interface AnalisisPreview {
+  resumen: string
+  datos_clave: AnalisisContrato['datos_clave']
+  valoracion_global: ValoracionGlobal
+  resumen_riesgos: string
+  clausulas: ClausulaPreview[]
+}
 ```
 
 ## Convenciones Angular
@@ -117,8 +154,9 @@ interface Clausula {
 
 ```
 ANTHROPIC_API_KEY=sk-ant-...            # obligatoria
+STRIPE_SECRET_KEY=sk_test_...           # obligatoria (modo test mientras no haya cuenta verificada)
 PORT=3000                               # opcional, default 3000
-FRONTEND_URL=http://localhost:4200      # origen permitido por CORS
+FRONTEND_URL=http://localhost:4200      # origen permitido por CORS y redirecciones de Stripe
 ```
 
 ## Despliegue
@@ -138,12 +176,14 @@ FRONTEND_URL=http://localhost:4200      # origen permitido por CORS
 
 ## Lo que NO hay todavía (backlog)
 
-- [ ] Integración Stripe (4,99€ por análisis)
+- [ ] Webhooks de Stripe (mayor robustez ante cierres de pestaña tras el pago)
+- [ ] Pasar Stripe a modo Live (verificación de cuenta + `sk_live_...`)
 - [ ] Autenticación / historial de análisis por usuario
 - [ ] Soporte PDFs escaneados (OCR)
 - [ ] Modo B2B: prompt adaptado para gestorías y administradores de fincas
 - [ ] Generación de contratos desde cero (no solo análisis)
 - [ ] Análisis de declaración de la renta para propietarios (posible pivot/extensión)
+- [ ] Limitar abuso de `/api/subir` (rate limiting / captcha) — cada PDF subido genera una llamada a Claude aunque el usuario no pague después
 
 ## Contexto de negocio (para decisiones de producto)
 
